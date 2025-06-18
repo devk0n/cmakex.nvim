@@ -20,6 +20,8 @@ A simple CMake + Ninja plugin for Neovim.
   cmd = { "Generate", "Build", "Run", "Clean" },
 }
 
+```
+
 ## Requirements
 - Ninja
 - CMake project with project(...) and add_executable(...)
