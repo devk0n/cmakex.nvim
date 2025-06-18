@@ -29,4 +29,29 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
     require("cmakex").setup()
   end,
 }
+```
 
+## 📂 Requirements
+- CMake
+- Ninja
+- A `CMakeLists.txt` file with `project(...)` and `add_executable(...)`
+
+## 📦 Commands
+
+| Command     | Description                              |
+|-------------|------------------------------------------|
+| `:Generate` | Configure the project (default: Debug)   |
+| `:Build`    | Build the project with Ninja             |
+| `:Run`      | Run the generated executable             |
+| `:Clean`    | Remove the `build/` directory            |
+
+---
+
+## 🧠 Example `CMakeLists.txt`
+
+```cmake
+cmake_minimum_required(VERSION 3.15)
+project(MyApp)
+
+add_executable(MyApp main.cpp)
+```
