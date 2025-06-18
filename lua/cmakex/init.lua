@@ -38,7 +38,7 @@ end
 function M.generate(build_type)
   build_type = build_type or "Debug"
   local cmd = string.format(
-    'cmake -G Ninja -DCMAKE_BUILD_TYPE=%s -B "%s" -S "%s"',
+    'cmake -G Ninja -DCMAKE_BUILD_TYPE=%s -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -B "%s" -S "%s"',
     build_type,
     get_build_dir(),
     get_project_dir()
