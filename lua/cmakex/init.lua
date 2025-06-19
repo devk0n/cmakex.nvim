@@ -1,4 +1,3 @@
--- lua/cmake_runner/init.lua
 local M = {}
 
 local term_bufnr = nil
@@ -26,15 +25,10 @@ local function get_executable_name()
     end
   end
 
-  if exe_name == "${PROJECT_NAME}" or exe_name == nil then
-    return project_name or "a.out"
-  end
-
-  return exe_name
+  return exe_name or project_name or "a.out"
 end
 
 local function open_or_reuse_terminal()
-  -- If terminal buffer exists and is valid, reuse it
   if term_bufnr and vim.api.nvim_buf_is_valid(term_bufnr) then
     local wins = vim.fn.win_findbuf(term_bufnr)
     if #wins == 0 then
@@ -45,7 +39,6 @@ local function open_or_reuse_terminal()
       term_winid = wins[1]
     end
   else
-    -- Create a new terminal buffer
     vim.cmd("botright split | resize 15")
     term_winid = vim.api.nvim_get_current_win()
     vim.cmd("term")
@@ -58,19 +51,17 @@ local function run_in_split(cmd)
   if vim.b.terminal_job_id then
     vim.fn.chansend(vim.b.terminal_job_id, cmd .. "\n")
 
-    -- Scroll to the bottom
     vim.defer_fn(function()
       if term_winid and vim.api.nvim_win_is_valid(term_winid) then
         vim.api.nvim_win_call(term_winid, function()
           vim.cmd("normal! G")
         end)
       end
-    end, 30) -- small delay to allow output to flush
+    end, 30)
   else
     vim.notify("Failed to send command to terminal", vim.log.levels.ERROR)
   end
 end
-
 
 function M.generate(build_type)
   build_type = build_type or "Debug"
@@ -92,12 +83,24 @@ function M.build(build_type)
   run_in_split("ninja -C " .. get_build_dir())
 end
 
+function M.rebuild(build_type)
+  build_type = build_type or "Debug"
+  M.clean()
+  vim.defer_fn(function()
+    M.generate(build_type)
+    vim.defer_fn(function()
+      M.build(build_type)
+    end, 100)
+  end, 100)
+end
+
 function M.run()
   local exe = get_build_dir() .. "/" .. get_executable_name()
-  if vim.fn.filereadable(exe) == 1 then
-    run_in_split(exe)
+  if vim.fn.executable(exe) == 1 then
+    -- Auto-close terminal after execution with a pause
+    run_in_split(exe .. " ; echo ''; echo 'Press enter to close...' ; read")
   else
-    vim.notify("Executable not found: " .. exe, vim.log.levels.ERROR)
+    vim.notify("Executable not found or not executable: " .. exe, vim.log.levels.ERROR)
   end
 end
 
@@ -121,6 +124,10 @@ function M.setup()
   vim.api.nvim_create_user_command("Clean", function()
     M.clean()
   end, {})
+
+  vim.api.nvim_create_user_command("Rebuild", function(opts)
+    M.rebuild(opts.args)
+  end, { nargs = "?" })
 end
 
 return M
