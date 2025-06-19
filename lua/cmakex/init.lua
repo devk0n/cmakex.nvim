@@ -57,10 +57,20 @@ local function run_in_split(cmd)
   open_or_reuse_terminal()
   if vim.b.terminal_job_id then
     vim.fn.chansend(vim.b.terminal_job_id, cmd .. "\n")
+
+    -- Scroll to the bottom
+    vim.defer_fn(function()
+      if term_winid and vim.api.nvim_win_is_valid(term_winid) then
+        vim.api.nvim_win_call(term_winid, function()
+          vim.cmd("normal! G")
+        end)
+      end
+    end, 30) -- small delay to allow output to flush
   else
     vim.notify("Failed to send command to terminal", vim.log.levels.ERROR)
   end
 end
+
 
 function M.generate(build_type)
   build_type = build_type or "Debug"
