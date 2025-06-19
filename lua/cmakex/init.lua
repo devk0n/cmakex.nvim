@@ -1,6 +1,9 @@
 -- lua/cmake_runner/init.lua
 local M = {}
 
+local term_bufnr = nil
+local term_winid = nil
+
 local function get_project_dir()
   return vim.fn.getcwd()
 end
@@ -30,9 +33,33 @@ local function get_executable_name()
   return exe_name
 end
 
+local function open_or_reuse_terminal()
+  -- If terminal buffer exists and is valid, reuse it
+  if term_bufnr and vim.api.nvim_buf_is_valid(term_bufnr) then
+    local wins = vim.fn.win_findbuf(term_bufnr)
+    if #wins == 0 then
+      vim.cmd("botright split | resize 15")
+      term_winid = vim.api.nvim_get_current_win()
+      vim.api.nvim_win_set_buf(term_winid, term_bufnr)
+    else
+      term_winid = wins[1]
+    end
+  else
+    -- Create a new terminal buffer
+    vim.cmd("botright split | resize 15")
+    term_winid = vim.api.nvim_get_current_win()
+    vim.cmd("term")
+    term_bufnr = vim.api.nvim_get_current_buf()
+  end
+end
+
 local function run_in_split(cmd)
-  vim.cmd("botright split | resize 15")
-  vim.cmd("term " .. cmd)
+  open_or_reuse_terminal()
+  if vim.b.terminal_job_id then
+    vim.fn.chansend(vim.b.terminal_job_id, cmd .. "\n")
+  else
+    vim.notify("Failed to send command to terminal", vim.log.levels.ERROR)
+  end
 end
 
 function M.generate(build_type)
