@@ -106,7 +106,7 @@ end
 function M.run()
   local exe = get_build_dir() .. "/bin/" .. get_executable_name()
   if vim.fn.executable(exe) == 1 then
-    run_in_split(exe .. " ; echo ''; echo 'Press enter to close...' ; read")
+    run_in_split(exe)
   else
     vim.notify("Executable not found or not executable: " .. exe, vim.log.levels.ERROR)
   end
