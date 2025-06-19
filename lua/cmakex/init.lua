@@ -95,7 +95,7 @@ function M.rebuild(build_type)
 end
 
 function M.run()
-  local exe = get_build_dir() .. "/" .. get_executable_name()
+  local exe = get_build_dir() .. "/bin/" .. get_executable_name()
   if vim.fn.executable(exe) == 1 then
     -- Auto-close terminal after execution with a pause
     run_in_split(exe .. " ; echo ''; echo 'Press enter to close...' ; read")
