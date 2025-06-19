@@ -2,6 +2,7 @@ local M = {}
 
 local term_bufnr = nil
 local term_winid = nil
+local term_job_id = nil
 
 local function get_project_dir()
   return vim.fn.getcwd()
@@ -28,7 +29,7 @@ local function get_executable_name()
   return exe_name or project_name or "a.out"
 end
 
-local function open_or_reuse_terminal()
+local function open_or_create_dedicated_terminal()
   if term_bufnr and vim.api.nvim_buf_is_valid(term_bufnr) then
     local wins = vim.fn.win_findbuf(term_bufnr)
     if #wins == 0 then
@@ -41,16 +42,21 @@ local function open_or_reuse_terminal()
   else
     vim.cmd("botright split | resize 15")
     term_winid = vim.api.nvim_get_current_win()
-    vim.cmd("term")
-    term_bufnr = vim.api.nvim_get_current_buf()
+    term_bufnr = vim.api.nvim_create_buf(false, true)
+
+    -- Start a shell with termopen and keep job ID
+    term_job_id = vim.fn.termopen(os.getenv("SHELL") or "bash")
+    vim.api.nvim_win_set_buf(term_winid, term_bufnr)
+
+    -- Optionally: name the buffer
+    vim.api.nvim_buf_set_name(term_bufnr, "DedicatedBuildTerminal")
   end
 end
 
 local function run_in_split(cmd)
-  open_or_reuse_terminal()
-  if vim.b.terminal_job_id then
-    vim.fn.chansend(vim.b.terminal_job_id, cmd .. "\n")
-
+  open_or_create_dedicated_terminal()
+  if term_job_id and vim.fn.jobwait({ term_job_id }, 0)[1] == -1 then
+    vim.fn.chansend(term_job_id, cmd .. "\n")
     vim.defer_fn(function()
       if term_winid and vim.api.nvim_win_is_valid(term_winid) then
         vim.api.nvim_win_call(term_winid, function()
@@ -59,7 +65,7 @@ local function run_in_split(cmd)
       end
     end, 30)
   else
-    vim.notify("Failed to send command to terminal", vim.log.levels.ERROR)
+    vim.notify("Dedicated terminal is not running", vim.log.levels.ERROR)
   end
 end
 
@@ -97,7 +103,6 @@ end
 function M.run()
   local exe = get_build_dir() .. "/bin/" .. get_executable_name()
   if vim.fn.executable(exe) == 1 then
-    -- Auto-close terminal after execution with a pause
     run_in_split(exe .. " ; echo ''; echo 'Press enter to close...' ; read")
   else
     vim.notify("Executable not found or not executable: " .. exe, vim.log.levels.ERROR)
