@@ -42,13 +42,16 @@ local function open_or_create_dedicated_terminal()
   else
     vim.cmd("botright split | resize 15")
     term_winid = vim.api.nvim_get_current_win()
-    term_bufnr = vim.api.nvim_create_buf(false, true)
 
-    -- Start a shell with termopen and keep job ID
-    term_job_id = vim.fn.termopen(os.getenv("SHELL") or "bash")
+    term_bufnr = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_win_set_buf(term_winid, term_bufnr)
 
-    -- Optionally: name the buffer
+    term_job_id = vim.fn.termopen(os.getenv("SHELL") or "bash", {
+      on_exit = function()
+        term_job_id = nil
+      end,
+    })
+
     vim.api.nvim_buf_set_name(term_bufnr, "DedicatedBuildTerminal")
   end
 end
@@ -136,4 +139,3 @@ function M.setup()
 end
 
 return M
-
